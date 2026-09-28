@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Management — HR Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">👥</div>
+      <div><div class="logo-text">HR Portal</div><div class="logo-sub" id="org-name"></div></div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer" id="sidebar-user"></div>
+  </nav>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">User Management</div></div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" id="btn-add" style="display:none;" onclick="openAddModal()">+ Add User</button>
+      </div>
+    </header>
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Portal Users</span></div>
+        <div id="user-table-container"><div class="loading-overlay"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="user-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Add User</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;"></div>
+      <form id="user-form">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" name="full_name" required /></div>
+          <div class="form-group"><label class="form-label">Email *</label><input class="form-control" type="email" name="email" required /></div>
+          <div class="form-group" id="pwd-group"><label class="form-label">Password *</label><input class="form-control" type="password" name="password" placeholder="Min 8 characters" /></div>
+          <div class="form-group"><label class="form-label">Role *</label><select class="form-control" name="role_id" id="role-select"><option value="">— Select Role —</option></select></div>
+          <div class="form-group" id="status-group" style="display:none;">
+            <label class="form-label">Active</label>
+            <select class="form-control" name="is_active"><option value="true">Yes</option><option value="false">No</option></select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitUser()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script><script src="js/app.js"></script>
+<script>
+  if (!requireAuth() || !canView('USER_MANAGEMENT')) { window.location.href='/dashboard.html'; }
+  const user = getUser();
+  document.getElementById('org-name').textContent = user.org_name || '';
+  buildSidebar('/users.html');
+  if (canCreate('USER_MANAGEMENT')) document.getElementById('btn-add').style.display='flex';
+
+  let roles=[], editingId=null;
+
+  async function loadAll() {
+    try {
+      const [uRes, rRes] = await Promise.all([api.get('/users'), api.get('/roles')]);
+      roles = rRes.data;
+      const rs = document.getElementById('role-select');
+      roles.forEach(r => rs.innerHTML += `<option value="${r.id}">${r.name}</option>`);
+      renderTable(uRes.data);
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  function renderTable(list) {
+    const edit = canEdit('USER_MANAGEMENT')   ? '' : 'style="display:none"';
+    const del  = canDelete('USER_MANAGEMENT') ? '' : 'style="display:none"';
+    const c = document.getElementById('user-table-container');
+    if (!list.length) { c.innerHTML='<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">No users found</div></div>'; return; }
+    c.innerHTML = `<table class="data-table">
+      <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+      <tbody>${list.map(u=>`<tr>
+        <td><div class="avatar-cell"><div class="table-avatar">${initials(u.full_name)}</div>
+          <div><div class="emp-name">${u.full_name}</div><div class="emp-id">${u.email}</div></div></div></td>
+        <td><span class="badge badge-ft">${u.role_name}</span></td>
+        <td>${u.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>'}</td>
+        <td style="color:var(--text-muted);">${u.last_login ? formatDate(u.last_login) : 'Never'}</td>
+        <td><div style="display:flex;gap:6px;">
+          <button class="btn btn-icon btn-sm" ${edit} onclick="openEditModal('${u.id}','${u.full_name.replace(/'/g,"\\'")}','${u.email}',${u.role_id},${u.is_active})">✏️</button>
+          <button class="btn btn-icon btn-sm" ${del} onclick="deleteUser('${u.id}','${u.full_name.replace(/'/g,"\\'")}')">🗑</button>
+        </div></td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  function openAddModal() { editingId=null; document.getElementById('modal-title').textContent='Add User'; document.getElementById('user-form').reset(); document.getElementById('modal-error').style.display='none'; document.getElementById('pwd-group').style.display=''; document.getElementById('status-group').style.display='none'; document.getElementById('user-modal').classList.add('open'); }
+  function openEditModal(id,name,email,roleId,active) { editingId=id; document.getElementById('modal-title').textContent='Edit User'; const f=document.getElementById('user-form'); f.elements['full_name'].value=name; f.elements['email'].value=email; f.elements['role_id'].value=roleId; f.elements['is_active'].value=String(active); document.getElementById('modal-error').style.display='none'; document.getElementById('pwd-group').style.display='none'; document.getElementById('status-group').style.display=''; document.getElementById('user-modal').classList.add('open'); }
+  function closeModal() { document.getElementById('user-modal').classList.remove('open'); }
+
+  async function submitUser() {
+    const f=document.getElementById('user-form'); const errEl=document.getElementById('modal-error');
+    const data={full_name:f.elements['full_name'].value.trim(), email:f.elements['email'].value.trim(), role_id:Number(f.elements['role_id'].value)};
+    if (!editingId) data.password=f.elements['password'].value;
+    else data.is_active = f.elements['is_active'].value === 'true';
+    try {
+      if (editingId) { await api.put(`/users/${editingId}`,data); showToast('User updated','success'); }
+      else { await api.post('/users',data); showToast('User created','success'); }
+      closeModal(); loadAll();
+    } catch(e) { errEl.textContent=e.message; errEl.style.display='block'; }
+  }
+
+  async function deleteUser(id,name) {
+    if (!confirm(`Delete user "${name}"?`)) return;
+    try { await api.delete(`/users/${id}`); showToast('Deleted','success'); loadAll(); }
+    catch(e) { showToast(e.message,'error'); }
+  }
+
+  loadAll();
+</script>
+</body>
+</html>

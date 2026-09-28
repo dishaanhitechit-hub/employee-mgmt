@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Permissions — HR Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .emp-search-wrap { display:flex; gap:12px; align-items:center; margin-bottom:20px; }
+    .emp-search-wrap input { flex:1; }
+    .emp-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-bottom:28px; }
+    .emp-card {
+      background:var(--surface); border:1.5px solid var(--border);
+      border-radius:10px; padding:14px 16px; cursor:pointer; transition:border-color .15s, box-shadow .15s;
+    }
+    .emp-card:hover { border-color:var(--primary); box-shadow:0 0 0 3px rgba(99,102,241,.1); }
+    .emp-card.selected { border-color:var(--primary); background:rgba(99,102,241,.06); }
+    .emp-card-name { font-weight:600; font-size:14px; margin-bottom:2px; }
+    .emp-card-sub  { font-size:12px; color:var(--text-muted); }
+    .perm-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .perm-section-header {
+      padding:16px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .source-badge {
+      display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px;
+      text-transform:uppercase; letter-spacing:.5px;
+    }
+    .source-role       { background:#e0f2fe; color:#0369a1; }
+    .source-employee   { background:#d1fae5; color:#065f46; }
+    .source-department { background:#fef3c7; color:#92400e; }
+    .source-none       { background:#f1f5f9; color:#64748b; }
+    .perm-dot.on  { color:#22c55e; font-size:16px; }
+    .perm-dot.off { color:#cbd5e1; font-size:16px; }
+    .override-row td { background:rgba(99,102,241,.03); }
+    .legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; align-items:center; font-size:12px; color:var(--text-muted); }
+    .legend-item { display:flex; align-items:center; gap:5px; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">👥</div>
+      <div><div class="logo-text">HR Portal</div><div class="logo-sub" id="org-name"></div></div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer" id="sidebar-user"></div>
+  </nav>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">Employee Permissions</div></div>
+    </header>
+
+    <div class="page-body">
+      <!-- Employee picker -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header"><span class="card-title">Select Employee</span></div>
+        <div style="padding:16px 20px;">
+          <div class="emp-search-wrap">
+            <input class="form-input" type="text" id="emp-search" placeholder="Search by name or ID…" oninput="filterEmployees()" />
+          </div>
+          <div class="emp-list" id="emp-list">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Permission matrix (shown after selecting an employee) -->
+      <div id="perm-section" style="display:none;">
+        <div class="legend">
+          <strong>Source legend:</strong>
+          <span class="legend-item"><span class="source-badge source-department">department</span> Department override (highest priority)</span>
+          <span class="legend-item"><span class="source-badge source-employee">employee</span> Individual override</span>
+          <span class="legend-item"><span class="source-badge source-role">role</span> From assigned role (default)</span>
+          <span class="legend-item"><span class="source-badge source-none">none</span> No permission</span>
+        </div>
+
+        <div class="perm-section">
+          <div class="perm-section-header">
+            <div>
+              <span class="card-title" id="perm-emp-name">—</span>
+              <span style="color:var(--text-muted);font-size:13px;margin-left:8px;" id="perm-emp-meta"></span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="clearOverrides()">Clear Individual Overrides</button>
+              <button class="btn btn-primary btn-sm" id="save-btn" onclick="savePermissions()">Save Changes</button>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%;">
+              <thead><tr>
+                <th style="min-width:160px;">Module</th>
+                <th style="text-align:center;">Source</th>
+                <th style="text-align:center;">Effective View</th>
+                <th style="text-align:center;">Effective Create</th>
+                <th style="text-align:center;">Effective Edit</th>
+                <th style="text-align:center;">Effective Delete</th>
+                <th style="text-align:center;min-width:40px;">Override View</th>
+                <th style="text-align:center;min-width:40px;">Override Create</th>
+                <th style="text-align:center;min-width:40px;">Override Edit</th>
+                <th style="text-align:center;min-width:40px;">Override Delete</th>
+              </tr></thead>
+              <tbody id="perm-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script><script src="js/app.js"></script>
+<script>
+  if (!requireAuth() || !canView('ROLE_MANAGEMENT')) { window.location.href = '/dashboard.html'; }
+  const user = getUser();
+  document.getElementById('org-name').textContent = user.org_name || '';
+  buildSidebar('/employee-permissions.html');
+
+  let allEmployees = [], selectedEmpId = null;
+
+  async function loadEmployees() {
+    try {
+      const { data } = await api.get('/employees');
+      allEmployees = data;
+      renderEmployeeList(data);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  function filterEmployees() {
+    const q = document.getElementById('emp-search').value.toLowerCase();
+    renderEmployeeList(allEmployees.filter(e =>
+      e.full_name.toLowerCase().includes(q) || e.employee_id.toLowerCase().includes(q)
+    ));
+  }
+
+  function renderEmployeeList(list) {
+    const el = document.getElementById('emp-list');
+    if (!list.length) { el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No employees found.</p>'; return; }
+    el.innerHTML = list.map(e => `
+      <div class="emp-card ${selectedEmpId === e.id ? 'selected' : ''}" onclick="selectEmployee(${e.id})">
+        <div class="emp-card-name">${e.full_name}</div>
+        <div class="emp-card-sub">${e.employee_id} · ${e.department || '—'}</div>
+        <div class="emp-card-sub">${e.designation || '—'}</div>
+      </div>`).join('');
+  }
+
+  async function selectEmployee(empId) {
+    selectedEmpId = empId;
+    renderEmployeeList(allEmployees.filter(e => {
+      const q = document.getElementById('emp-search').value.toLowerCase();
+      return !q || e.full_name.toLowerCase().includes(q) || e.employee_id.toLowerCase().includes(q);
+    }));
+    await loadPermissions(empId);
+  }
+
+  async function loadPermissions(empId) {
+    document.getElementById('perm-section').style.display = 'block';
+    document.getElementById('perm-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;"><div class="spinner" style="margin:0 auto;"></div></td></tr>';
+    try {
+      const { data } = await api.get(`/employee-permissions/${empId}`);
+      document.getElementById('perm-emp-name').textContent = data.employee_name;
+      document.getElementById('perm-emp-meta').textContent =
+        `${data.employee_code} · ${data.department || '—'} · ${data.designation || '—'}`;
+      renderPermTable(data.permissions);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  function renderPermTable(permissions) {
+    const dot = (on) => `<span class="perm-dot ${on ? 'on' : 'off'}">${on ? '✓' : '·'}</span>`;
+    const cb  = (mid, action, val) =>
+      `<input type="checkbox" data-module="${mid}" data-action="${action}" ${val ? 'checked' : ''}
+       style="width:16px;height:16px;cursor:pointer;" />`;
+
+    const canEdit = window.canEdit('ROLE_MANAGEMENT');
+    document.getElementById('save-btn').style.display = canEdit ? '' : 'none';
+
+    document.getElementById('perm-tbody').innerHTML = permissions.map(p => {
+      const ov = p.override || {};
+      const srcClass = `source-${p.source}`;
+      const isOverride = p.source === 'employee';
+      return `<tr class="${isOverride ? 'override-row' : ''}">
+        <td style="font-size:13px;font-weight:500;">${p.icon ? p.icon + ' ' : ''}${p.module_label}</td>
+        <td style="text-align:center;"><span class="source-badge ${srcClass}">${p.source}</span></td>
+        <td style="text-align:center;">${dot(p.can_view)}</td>
+        <td style="text-align:center;">${dot(p.can_create)}</td>
+        <td style="text-align:center;">${dot(p.can_edit)}</td>
+        <td style="text-align:center;">${dot(p.can_delete)}</td>
+        <td style="text-align:center;">${canEdit ? cb(p.module_id, 'view',   ov.can_view)   : dot(ov.can_view)}</td>
+        <td style="text-align:center;">${canEdit ? cb(p.module_id, 'create', ov.can_create) : dot(ov.can_create)}</td>
+        <td style="text-align:center;">${canEdit ? cb(p.module_id, 'edit',   ov.can_edit)   : dot(ov.can_edit)}</td>
+        <td style="text-align:center;">${canEdit ? cb(p.module_id, 'delete', ov.can_delete) : dot(ov.can_delete)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function savePermissions() {
+    if (!selectedEmpId) return;
+    const checkboxes = document.querySelectorAll('#perm-tbody input[type="checkbox"]');
+    const permMap = {};
+    checkboxes.forEach(cb => {
+      const mid = cb.dataset.module;
+      const action = cb.dataset.action;
+      if (!permMap[mid]) permMap[mid] = { module_id: Number(mid), can_view: false, can_create: false, can_edit: false, can_delete: false };
+      permMap[mid][`can_${action}`] = cb.checked;
+    });
+    try {
+      await api.put(`/employee-permissions/${selectedEmpId}`, { permissions: Object.values(permMap) });
+      showToast('Individual permissions saved', 'success');
+      await loadPermissions(selectedEmpId);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function clearOverrides() {
+    if (!selectedEmpId) return;
+    if (!confirm('Remove all individual permission overrides for this employee? They will fall back to role/department defaults.')) return;
+    try {
+      await api.delete(`/employee-permissions/${selectedEmpId}`);
+      showToast('Individual overrides cleared', 'success');
+      await loadPermissions(selectedEmpId);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  loadEmployees();
+</script>
+</body>
+</html>

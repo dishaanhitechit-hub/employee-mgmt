@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Attendance — HR Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-bottom:24px; }
+    .stat-box  { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; text-align:center; }
+    .stat-num  { font-size:26px; font-weight:700; }
+    .stat-lbl  { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+    .s-present { color:#22c55e; } .s-absent  { color:#ef4444; } .s-late { color:#f59e0b; }
+    .s-half    { color:#8b5cf6; } .s-leave   { color:#3b82f6; } .s-holiday { color:#14b8a6; }
+    .filters   { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:20px; }
+    .filters .form-group { margin:0; }
+    .filters label { font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px; font-weight:500; }
+    .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }
+    .dot-Present {background:#22c55e;} .dot-Absent  {background:#ef4444;} .dot-Late     {background:#f59e0b;}
+    .dot-Half\ Day{background:#8b5cf6;} .dot-On\ Leave{background:#3b82f6;} .dot-Holiday {background:#14b8a6;}
+    .bulk-bar { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:20px; }
+    .bulk-bar h4 { margin:0 0 12px; font-size:14px; }
+    .bulk-emp-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+    .bulk-emp-row:last-child { border-bottom:none; }
+    .bulk-emp-name { flex:1; font-size:13px; font-weight:500; }
+    .bulk-emp-dept { font-size:12px; color:var(--text-muted); min-width:110px; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">👥</div>
+      <div><div class="logo-text">HR Portal</div><div class="logo-sub" id="org-name"></div></div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer" id="sidebar-user"></div>
+  </nav>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div><div class="page-title">Attendance</div><div class="page-sub" id="rec-count"></div></div>
+      </div>
+      <div class="topbar-right" id="topbar-actions"></div>
+    </header>
+
+    <div class="page-body">
+      <!-- Summary stats -->
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-box"><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-box"><div class="stat-num s-present" id="s-present">—</div><div class="stat-lbl">Present</div></div>
+        <div class="stat-box"><div class="stat-num s-absent"  id="s-absent">—</div><div class="stat-lbl">Absent</div></div>
+        <div class="stat-box"><div class="stat-num s-late"    id="s-late">—</div><div class="stat-lbl">Late</div></div>
+        <div class="stat-box"><div class="stat-num s-half"    id="s-half">—</div><div class="stat-lbl">Half Day</div></div>
+        <div class="stat-box"><div class="stat-num s-leave"   id="s-leave">—</div><div class="stat-lbl">On Leave</div></div>
+        <div class="stat-box"><div class="stat-num s-holiday" id="s-holiday">—</div><div class="stat-lbl">Holiday</div></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="form-group">
+          <label>Date From</label>
+          <input class="form-input" type="date" id="f-from" onchange="loadData()" />
+        </div>
+        <div class="form-group">
+          <label>Date To</label>
+          <input class="form-input" type="date" id="f-to" onchange="loadData()" />
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select class="form-input" id="f-status" onchange="loadData()">
+            <option value="">All Statuses</option>
+            <option>Present</option><option>Absent</option><option>Late</option>
+            <option>Half Day</option><option>On Leave</option><option>Holiday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Employee</label>
+          <select class="form-input" id="f-employee" onchange="loadData()">
+            <option value="">All Employees</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+      </div>
+
+      <!-- Records table -->
+      <div class="card">
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Hours</th>
+              <th>Notes</th>
+              <th>Marked By</th>
+              <th id="action-col" style="display:none;">Actions</th>
+            </tr></thead>
+            <tbody id="attendance-tbody">
+              <tr><td colspan="10" style="text-align:center;padding:32px;">
+                <div class="spinner" style="margin:0 auto;"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mark / Edit Attendance Modal -->
+<div class="modal-backdrop" id="mark-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="mark-modal-title">Mark Attendance</span>
+      <button class="modal-close" onclick="closeMarkModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id" />
+      <div class="form-group">
+        <label class="form-label">Employee *</label>
+        <select class="form-input" id="m-employee" required></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input class="form-input" type="date" id="m-date" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status *</label>
+          <select class="form-input" id="m-status">
+            <option>Present</option><option>Absent</option><option>Late</option>
+            <option>Half Day</option><option>On Leave</option><option>Holiday</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Check In</label>
+          <input class="form-input" type="time" id="m-checkin" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Check Out</label>
+          <input class="form-input" type="time" id="m-checkout" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" id="m-notes" rows="2" style="resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeMarkModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitMark()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Mark Modal -->
+<div class="modal-backdrop" id="bulk-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Bulk Mark Attendance</span>
+      <button class="modal-close" onclick="closeBulkModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input class="form-input" type="date" id="bulk-date" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Status</label>
+          <select class="form-input" id="bulk-default-status" onchange="applyDefaultStatus()">
+            <option>Present</option><option>Absent</option><option>Late</option>
+            <option>Half Day</option><option>On Leave</option><option>Holiday</option>
+          </select>
+        </div>
+      </div>
+      <div id="bulk-list" style="max-height:380px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitBulk()">Save All</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script><script src="js/app.js"></script>
+<script>
+  if (!requireAuth() || !canView('ATTENDANCE')) { window.location.href = '/dashboard.html'; }
+  const user = getUser();
+  document.getElementById('org-name').textContent = user.org_name || '';
+  buildSidebar('/attendance.html');
+
+  let allEmployees = [], editingId = null;
+
+  const STATUS_COLORS = {
+    'Present':'#22c55e','Absent':'#ef4444','Late':'#f59e0b',
+    'Half Day':'#8b5cf6','On Leave':'#3b82f6','Holiday':'#14b8a6'
+  };
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  async function init() {
+    // default filter: today's month
+    const today = new Date();
+    const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0');
+    document.getElementById('f-from').value = `${y}-${m}-01`;
+    document.getElementById('f-to').value   = today.toISOString().slice(0,10);
+
+    // show mark buttons for users with create permission
+    if (canCreate('ATTENDANCE')) {
+      document.getElementById('topbar-actions').innerHTML = `
+        <button class="btn btn-ghost btn-sm" onclick="openBulkModal()">Bulk Mark</button>
+        <button class="btn btn-primary" onclick="openMarkModal()">+ Mark Attendance</button>`;
+    }
+    if (canEdit('ATTENDANCE') || canDelete('ATTENDANCE')) {
+      document.getElementById('action-col').style.display = '';
+    }
+
+    await loadEmployees();
+    await loadData();
+  }
+
+  async function loadEmployees() {
+    try {
+      const { data } = await api.get('/employees');
+      allEmployees = data;
+      const sel = document.getElementById('f-employee');
+      const mSel = document.getElementById('m-employee');
+      const bSel = document.getElementById('bulk-default-status'); // not employee — it's fine
+      data.forEach(e => {
+        const opt = `<option value="${e.id}">${e.full_name} (${e.employee_id})</option>`;
+        sel.insertAdjacentHTML('beforeend', opt);
+        mSel.insertAdjacentHTML('beforeend', opt);
+      });
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  async function loadData() {
+    const params = new URLSearchParams();
+    const from = document.getElementById('f-from').value;
+    const to   = document.getElementById('f-to').value;
+    const st   = document.getElementById('f-status').value;
+    const emp  = document.getElementById('f-employee').value;
+    if (from) params.set('date_from', from);
+    if (to)   params.set('date_to',   to);
+    if (st)   params.set('status',    st);
+    if (emp)  params.set('employee_id', emp);
+
+    try {
+      const [recRes, sumRes] = await Promise.all([
+        api.get('/attendance?' + params),
+        api.get('/attendance/summary?' + params),
+      ]);
+      renderTable(recRes.data);
+      renderStats(sumRes.data);
+      document.getElementById('rec-count').textContent = `${recRes.data.length} record(s)`;
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  function renderStats(s) {
+    document.getElementById('s-total').textContent   = s.total;
+    document.getElementById('s-present').textContent = s.present;
+    document.getElementById('s-absent').textContent  = s.absent;
+    document.getElementById('s-late').textContent    = s.late;
+    document.getElementById('s-half').textContent    = s.half_day;
+    document.getElementById('s-leave').textContent   = s.on_leave;
+    document.getElementById('s-holiday').textContent = s.holiday;
+  }
+
+  function renderTable(records) {
+    const canEdit_ = canEdit('ATTENDANCE'), canDel_ = canDelete('ATTENDANCE');
+    const showAction = canEdit_ || canDel_;
+    document.getElementById('action-col').style.display = showAction ? '' : 'none';
+
+    if (!records.length) {
+      document.getElementById('attendance-tbody').innerHTML =
+        '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-muted);">No records found.</td></tr>';
+      return;
+    }
+
+    document.getElementById('attendance-tbody').innerHTML = records.map(r => {
+      const color = STATUS_COLORS[r.status] || '#64748b';
+      const hrs = r.duration_minutes ? `${Math.floor(r.duration_minutes/60)}h ${r.duration_minutes%60}m` : '—';
+      const actions = showAction ? `
+        <td style="white-space:nowrap;">
+          ${canEdit_ ? `<button class="btn btn-ghost btn-sm" onclick="openEditModal(${r.id})">Edit</button>` : ''}
+          ${canDel_  ? `<button class="btn btn-ghost btn-sm" style="color:#ef4444;" onclick="deleteRecord(${r.id})">Del</button>` : ''}
+        </td>` : '';
+      return `<tr>
+        <td style="white-space:nowrap;">${formatDate(r.date)}</td>
+        <td>
+          <div style="font-weight:500;font-size:13px;">${r.employee_name}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${r.employee_code}</div>
+        </td>
+        <td style="font-size:13px;">${r.department || '—'}</td>
+        <td><span style="display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:${color};">
+          <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>${r.status}
+        </span></td>
+        <td style="font-size:13px;">${r.check_in  ? r.check_in.slice(0,5)  : '—'}</td>
+        <td style="font-size:13px;">${r.check_out ? r.check_out.slice(0,5) : '—'}</td>
+        <td style="font-size:13px;">${hrs}</td>
+        <td style="font-size:12px;color:var(--text-muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.notes||'—'}</td>
+        <td style="font-size:12px;color:var(--text-muted);">${r.marked_by_name||'—'}</td>
+        ${actions}
+      </tr>`;
+    }).join('');
+  }
+
+  function clearFilters() {
+    document.getElementById('f-from').value = '';
+    document.getElementById('f-to').value   = '';
+    document.getElementById('f-status').value   = '';
+    document.getElementById('f-employee').value = '';
+    loadData();
+  }
+
+  // ── Mark Modal ────────────────────────────────────────────────────────────
+  function openMarkModal() {
+    editingId = null;
+    document.getElementById('edit-id').value = '';
+    document.getElementById('mark-modal-title').textContent = 'Mark Attendance';
+    document.getElementById('m-date').value     = new Date().toISOString().slice(0,10);
+    document.getElementById('m-status').value   = 'Present';
+    document.getElementById('m-checkin').value  = '';
+    document.getElementById('m-checkout').value = '';
+    document.getElementById('m-notes').value    = '';
+    document.getElementById('m-employee').value = '';
+    document.getElementById('mark-modal').classList.add('open');
+  }
+
+  async function openEditModal(id) {
+    try {
+      const { data: r } = await api.get(`/attendance/${id}`);
+      editingId = id;
+      document.getElementById('edit-id').value    = id;
+      document.getElementById('mark-modal-title').textContent = 'Edit Attendance';
+      document.getElementById('m-employee').value = r.employee_id;
+      document.getElementById('m-date').value     = r.date;
+      document.getElementById('m-status').value   = r.status;
+      document.getElementById('m-checkin').value  = r.check_in  ? r.check_in.slice(0,5)  : '';
+      document.getElementById('m-checkout').value = r.check_out ? r.check_out.slice(0,5) : '';
+      document.getElementById('m-notes').value    = r.notes || '';
+      document.getElementById('mark-modal').classList.add('open');
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  function closeMarkModal() { document.getElementById('mark-modal').classList.remove('open'); }
+
+  async function submitMark() {
+    const payload = {
+      employee_id: document.getElementById('m-employee').value,
+      date:        document.getElementById('m-date').value,
+      status:      document.getElementById('m-status').value,
+      check_in:    document.getElementById('m-checkin').value  || null,
+      check_out:   document.getElementById('m-checkout').value || null,
+      notes:       document.getElementById('m-notes').value    || null,
+    };
+    if (!payload.employee_id) { showToast('Select an employee','error'); return; }
+    if (!payload.date)        { showToast('Date is required','error'); return; }
+    try {
+      if (editingId) {
+        await api.put(`/attendance/${editingId}`, payload);
+        showToast('Attendance updated','success');
+      } else {
+        await api.post('/attendance', payload);
+        showToast('Attendance marked','success');
+      }
+      closeMarkModal();
+      loadData();
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  // ── Bulk Modal ────────────────────────────────────────────────────────────
+  function openBulkModal() {
+    document.getElementById('bulk-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('bulk-default-status').value = 'Present';
+    renderBulkList('Present');
+    document.getElementById('bulk-modal').classList.add('open');
+  }
+
+  function closeBulkModal() { document.getElementById('bulk-modal').classList.remove('open'); }
+
+  function applyDefaultStatus() {
+    const status = document.getElementById('bulk-default-status').value;
+    document.querySelectorAll('.bulk-status-sel').forEach(sel => sel.value = status);
+  }
+
+  function renderBulkList(defaultStatus) {
+    const container = document.getElementById('bulk-list');
+    container.innerHTML = allEmployees.map(e => `
+      <div class="bulk-emp-row">
+        <div class="bulk-emp-name">${e.full_name} <span style="font-size:11px;color:var(--text-muted);">${e.employee_id}</span></div>
+        <div class="bulk-emp-dept">${e.department || '—'}</div>
+        <select class="form-input bulk-status-sel" data-emp="${e.id}" style="width:130px;padding:4px 8px;font-size:13px;">
+          ${['Present','Absent','Late','Half Day','On Leave','Holiday'].map(s =>
+            `<option ${s===defaultStatus?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <input type="time" class="form-input bulk-checkin" data-emp="${e.id}" placeholder="In" style="width:100px;padding:4px 8px;font-size:13px;" />
+        <input type="time" class="form-input bulk-checkout" data-emp="${e.id}" placeholder="Out" style="width:100px;padding:4px 8px;font-size:13px;" />
+      </div>`).join('');
+  }
+
+  async function submitBulk() {
+    const date = document.getElementById('bulk-date').value;
+    if (!date) { showToast('Date is required','error'); return; }
+    const records = [];
+    document.querySelectorAll('.bulk-status-sel').forEach(sel => {
+      const empId = sel.dataset.emp;
+      const checkin  = document.querySelector(`.bulk-checkin[data-emp="${empId}"]`).value;
+      const checkout = document.querySelector(`.bulk-checkout[data-emp="${empId}"]`).value;
+      records.push({
+        employee_id: Number(empId),
+        status:      sel.value,
+        check_in:    checkin  || null,
+        check_out:   checkout || null,
+      });
+    });
+    try {
+      const { meta } = await api.post('/attendance/bulk', { date, records });
+      showToast(`Marked ${meta?.count || records.length} records`,'success');
+      closeBulkModal();
+      loadData();
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────────
+  async function deleteRecord(id) {
+    if (!confirm('Delete this attendance record?')) return;
+    try {
+      await api.delete(`/attendance/${id}`);
+      showToast('Record deleted','success');
+      loadData();
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  init();
+</script>
+</body>
+</html>

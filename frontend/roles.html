@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roles & Permissions — HR Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">👥</div>
+      <div><div class="logo-text">HR Portal</div><div class="logo-sub" id="org-name"></div></div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer" id="sidebar-user"></div>
+  </nav>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">Roles & Permissions</div></div>
+    </header>
+    <div class="page-body">
+      <div id="roles-container"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Permission editor modal -->
+<div class="modal-backdrop" id="perm-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="perm-modal-title">Edit Permissions</span>
+      <button class="modal-close" onclick="closePermModal()">✕</button>
+    </div>
+    <div class="modal-body" id="perm-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePermModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePermissions()">Save Permissions</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script><script src="js/app.js"></script>
+<script>
+  if (!requireAuth() || !canView('ROLE_MANAGEMENT')) { window.location.href='/dashboard.html'; }
+  const user = getUser();
+  document.getElementById('org-name').textContent = user.org_name || '';
+  buildSidebar('/roles.html');
+
+  let allModules=[], editingRoleId=null;
+
+  async function loadRoles() {
+    try {
+      const [rRes, mRes] = await Promise.all([api.get('/roles'), api.get('/permissions/modules')]);
+      allModules = mRes.data;
+      const roles = rRes.data;
+      const c = document.getElementById('roles-container');
+      const canEdit = window.canEdit('ROLE_MANAGEMENT');
+      c.innerHTML = roles.map(role => `
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header">
+            <div>
+              <span class="card-title">${role.name}</span>
+              <span class="badge badge-ft" style="margin-left:8px;">${role.code}</span>
+              ${role.is_system ? '<span class="badge badge-active" style="margin-left:4px;font-size:10px;">system</span>' : ''}
+              <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">${role.user_count} user(s)</span>
+            </div>
+            ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="openPermModal(${role.id}, '${role.name.replace(/'/g,"\\'")}')">🛡 Edit Permissions</button>` : ''}
+          </div>
+          <div style="padding:16px 20px;">
+            <table class="data-table" style="width:100%;">
+              <thead><tr>
+                <th>Module</th>
+                <th style="text-align:center;">View</th>
+                <th style="text-align:center;">Create</th>
+                <th style="text-align:center;">Edit</th>
+                <th style="text-align:center;">Delete</th>
+              </tr></thead>
+              <tbody>
+                ${allModules.map(m => {
+                  const p = (role.permissions || []).find(x => x.module_code === m.code);
+                  const dot = (on) => `<span class="perm-dot ${on?'on':'off'}">${on?'✓':'·'}</span>`;
+                  return `<tr>
+                    <td style="font-size:13px;">${m.icon ? m.icon + ' ' : ''}${m.label}</td>
+                    <td style="text-align:center;">${dot(p?.can_view)}</td>
+                    <td style="text-align:center;">${dot(p?.can_create)}</td>
+                    <td style="text-align:center;">${dot(p?.can_edit)}</td>
+                    <td style="text-align:center;">${dot(p?.can_delete)}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`).join('');
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  async function openPermModal(roleId, roleName) {
+    editingRoleId = roleId;
+    document.getElementById('perm-modal-title').textContent = `Edit Permissions — ${roleName}`;
+    try {
+      const { data: role } = await api.get(`/roles/${roleId}`);
+      const existingPerms = {};
+      (role.permissions||[]).forEach(p => existingPerms[p.module_code] = p);
+      const body = document.getElementById('perm-modal-body');
+      body.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="width:100%;">
+            <thead><tr>
+              <th>Module</th>
+              <th style="text-align:center;">View</th>
+              <th style="text-align:center;">Create</th>
+              <th style="text-align:center;">Edit</th>
+              <th style="text-align:center;">Delete</th>
+            </tr></thead>
+            <tbody>
+              ${allModules.map(m => {
+                const p = existingPerms[m.code] || {};
+                const cb = (name, val) => `<input type="checkbox" data-module="${m.id}" data-action="${name}" ${val?'checked':''} style="width:16px;height:16px;cursor:pointer;" />`;
+                return `<tr>
+                  <td style="font-size:13px;font-weight:500;">${m.label}</td>
+                  <td style="text-align:center;">${cb('view',   p.can_view)}</td>
+                  <td style="text-align:center;">${cb('create', p.can_create)}</td>
+                  <td style="text-align:center;">${cb('edit',   p.can_edit)}</td>
+                  <td style="text-align:center;">${cb('delete', p.can_delete)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      document.getElementById('perm-modal').classList.add('open');
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  function closePermModal() { document.getElementById('perm-modal').classList.remove('open'); }
+
+  async function savePermissions() {
+    const checkboxes = document.querySelectorAll('#perm-modal-body input[type="checkbox"]');
+    const permMap = {};
+    checkboxes.forEach(cb => {
+      const mid    = cb.dataset.module;
+      const action = cb.dataset.action;
+      if (!permMap[mid]) permMap[mid] = { module_id: Number(mid), can_view: false, can_create: false, can_edit: false, can_delete: false };
+      permMap[mid][`can_${action}`] = cb.checked;
+    });
+    const permissions = Object.values(permMap);
+    try {
+      await api.put(`/roles/${editingRoleId}/permissions`, { permissions });
+      showToast('Permissions saved','success');
+      closePermModal();
+      loadRoles();
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  loadRoles();
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — HR Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">👥</div>
+      <div><div class="logo-text">HR Portal</div><div class="logo-sub" id="org-name">Loading…</div></div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer" id="sidebar-user"></div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub" id="today-date"></div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="topbar-user" style="font-size:13px;color:var(--text-muted);"></span>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <!-- Stat cards -->
+      <div class="stat-grid" id="stat-grid">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Charts row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Employees by Department</span></div>
+          <div class="card-body" id="dept-chart" style="padding:16px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Employment Type Split</span></div>
+          <div class="card-body" id="type-chart" style="padding:16px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if (!requireAuth()) {}
+  const user = getUser();
+  document.getElementById('org-name').textContent = user.org_name || '';
+  document.getElementById('topbar-user').textContent = `Hi, ${user.full_name?.split(' ')[0] || 'User'} 👋`;
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  buildSidebar('/dashboard.html');
+
+  async function loadStats() {
+    try {
+      const { data } = await api.get('/stats');
+      const grid = document.getElementById('stat-grid');
+      grid.innerHTML = `
+        <div class="stat-card"><div class="stat-icon blue">👤</div><div><div class="stat-value">${data.headcount}</div><div class="stat-label">Total Employees</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${data.active}</div><div class="stat-label">Active</div></div></div>
+        <div class="stat-card"><div class="stat-icon yellow">🌴</div><div><div class="stat-value">${data.on_leave}</div><div class="stat-label">On Leave</div></div></div>
+        <div class="stat-card"><div class="stat-icon purple">🏢</div><div><div class="stat-value">${data.departments}</div><div class="stat-label">Departments</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">📄</div><div><div class="stat-value">${data.inactive}</div><div class="stat-label">Inactive</div></div></div>
+      `;
+
+      // Dept bar chart
+      const deptEl = document.getElementById('dept-chart');
+      const max = Math.max(...data.by_department.map(d => d.cnt), 1);
+      deptEl.innerHTML = data.by_department.map(d => `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span style="width:130px;font-size:12px;color:var(--text-muted);flex-shrink:0;text-align:right;">${d.department}</span>
+          <div style="flex:1;background:var(--bg);border-radius:4px;height:20px;overflow:hidden;">
+            <div style="height:100%;width:${(d.cnt/max)*100}%;background:var(--primary);border-radius:4px;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:600;width:24px;">${d.cnt}</span>
+        </div>`).join('');
+
+      // Type pie chart (simple)
+      const t = data.employment_types;
+      const typeEl = document.getElementById('type-chart');
+      const types = [
+        { label:'Full-Time', val: t.full_time || 0, color:'#4f46e5' },
+        { label:'Part-Time', val: t.part_time || 0, color:'#7c3aed' },
+        { label:'Contract',  val: t.contract  || 0, color:'#f59e0b' },
+        { label:'Intern',    val: t.intern    || 0, color:'#10b981' },
+      ];
+      typeEl.innerHTML = types.map(tp => `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:12px;height:12px;border-radius:3px;background:${tp.color};flex-shrink:0;"></div>
+          <span style="flex:1;font-size:13px;">${tp.label}</span>
+          <strong style="font-size:13px;">${tp.val}</strong>
+        </div>`).join('');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  loadStats();
+</script>
+</body>
+</html>

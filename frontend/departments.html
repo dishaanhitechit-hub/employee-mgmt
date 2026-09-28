@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Departments — HR Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">👥</div>
+      <div><div class="logo-text">HR Portal</div><div class="logo-sub" id="org-name"></div></div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer" id="sidebar-user"></div>
+  </nav>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left"><div class="page-title">Departments</div></div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" id="btn-add" style="display:none;" onclick="openAddModal()">+ Add Department</button>
+      </div>
+    </header>
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header"><span class="card-title">All Departments</span></div>
+        <div id="dept-table-container"><div class="loading-overlay"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="dept-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Add Department</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;"></div>
+      <form id="dept-form">
+        <div class="form-grid" style="grid-template-columns:1fr;">
+          <div class="form-group"><label class="form-label">Name *</label><input class="form-control" name="name" required /></div>
+          <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitDept()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script><script src="js/app.js"></script>
+<script>
+  if (!requireAuth() || !canView('DEPARTMENTS')) { window.location.href='/dashboard.html'; }
+  const user = getUser();
+  document.getElementById('org-name').textContent = user.org_name || '';
+  buildSidebar('/departments.html');
+  if (canCreate('DEPARTMENTS')) document.getElementById('btn-add').style.display='flex';
+
+  let editingId = null;
+
+  async function loadDepts() {
+    try {
+      const { data } = await api.get('/departments');
+      const edit = canEdit('DEPARTMENTS')   ? '' : 'style="display:none"';
+      const del  = canDelete('DEPARTMENTS') ? '' : 'style="display:none"';
+      const container = document.getElementById('dept-table-container');
+      if (!data.length) { container.innerHTML='<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-text">No departments yet</div></div>'; return; }
+      container.innerHTML = `<table class="data-table">
+        <thead><tr><th>Department</th><th>Description</th><th>Head</th><th>Employees</th><th>Actions</th></tr></thead>
+        <tbody>${data.map(d=>`<tr>
+          <td><strong>${d.name}</strong></td>
+          <td style="color:var(--text-muted);max-width:280px;">${d.description||'—'}</td>
+          <td>${d.head_name||'—'}</td>
+          <td><span class="badge badge-ft">${d.employee_count||0}</span></td>
+          <td><div style="display:flex;gap:6px;">
+            <button class="btn btn-icon btn-sm" ${edit} onclick="openEditModal(${d.id},'${d.name.replace(/'/g,"\\'")}','${(d.description||'').replace(/'/g,"\\'")}')">✏️</button>
+            <button class="btn btn-icon btn-sm" ${del} onclick="deleteDept(${d.id},'${d.name.replace(/'/g,"\\'")}')">🗑</button>
+          </div></td>
+        </tr>`).join('')}</tbody></table>`;
+    } catch(e) { showToast(e.message,'error'); }
+  }
+
+  function openAddModal() { editingId=null; document.getElementById('modal-title').textContent='Add Department'; document.getElementById('dept-form').reset(); document.getElementById('modal-error').style.display='none'; document.getElementById('dept-modal').classList.add('open'); }
+  function openEditModal(id,name,desc) { editingId=id; document.getElementById('modal-title').textContent='Edit Department'; const f=document.getElementById('dept-form'); f.elements['name'].value=name; f.elements['description'].value=desc; document.getElementById('modal-error').style.display='none'; document.getElementById('dept-modal').classList.add('open'); }
+  function closeModal() { document.getElementById('dept-modal').classList.remove('open'); }
+
+  async function submitDept() {
+    const f=document.getElementById('dept-form'); const errEl=document.getElementById('modal-error');
+    const data={name:f.elements['name'].value.trim(), description:f.elements['description'].value.trim()};
+    if (!data.name) { errEl.textContent='Name is required'; errEl.style.display='block'; return; }
+    try {
+      if (editingId) { await api.put(`/departments/${editingId}`,data); showToast('Department updated','success'); }
+      else           { await api.post('/departments',data); showToast('Department created','success'); }
+      closeModal(); loadDepts();
+    } catch(e) { errEl.textContent=e.message; errEl.style.display='block'; }
+  }
+
+  async function deleteDept(id,name) {
+    if (!confirm(`Delete department "${name}"?`)) return;
+    try { await api.delete(`/departments/${id}`); showToast('Deleted','success'); loadDepts(); }
+    catch(e) { showToast(e.message,'error'); }
+  }
+
+  loadDepts();
+</script>
+</body>
+</html>

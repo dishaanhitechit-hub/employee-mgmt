@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employees — HR Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">👥</div>
+      <div><div class="logo-text">HR Portal</div><div class="logo-sub" id="org-name"></div></div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer" id="sidebar-user"></div>
+  </nav>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div><div class="page-title">Employees</div><div class="page-sub" id="emp-count"></div></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" id="btn-add" style="display:none;" onclick="openAddModal()">+ Add Employee</button>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Employee Directory</span>
+          <div class="card-actions">
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="search-input" placeholder="Search by name or ID…" oninput="filterEmployees()" />
+            </div>
+            <select class="filter-select" id="dept-filter" onchange="filterEmployees()">
+              <option value="">All Departments</option>
+            </select>
+            <select class="filter-select" id="status-filter" onchange="filterEmployees()">
+              <option value="">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="On Leave">On Leave</option>
+            </select>
+          </div>
+        </div>
+        <div id="emp-table-container">
+          <div class="loading-overlay"><div class="spinner"></div><span>Loading employees…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-backdrop" id="emp-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Add Employee</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;"></div>
+      <form id="emp-form">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" name="full_name" required /></div>
+          <div class="form-group"><label class="form-label">Email *</label><input class="form-control" type="email" name="email" required /></div>
+          <div class="form-group"><label class="form-label">Phone</label><input class="form-control" name="phone" /></div>
+          <div class="form-group"><label class="form-label">Date of Birth</label><input class="form-control" type="date" name="date_of_birth" /></div>
+          <div class="form-group"><label class="form-label">Designation</label><input class="form-control" name="designation" /></div>
+          <div class="form-group"><label class="form-label">Department</label>
+            <select class="form-control" name="department_id" id="form-dept"></select>
+          </div>
+          <div class="form-group"><label class="form-label">Employment Type</label>
+            <select class="form-control" name="employment_type">
+              <option value="Full-Time">Full-Time</option>
+              <option value="Part-Time">Part-Time</option>
+              <option value="Contract">Contract</option>
+              <option value="Intern">Intern</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Status</label>
+            <select class="form-control" name="employment_status">
+              <option value="Active">Active</option>
+              <option value="On Leave">On Leave</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Joining Date</label><input class="form-control" type="date" name="joining_date" /></div>
+          <div class="form-group"><label class="form-label">Work Location</label><input class="form-control" name="work_location" /></div>
+          <div class="form-group"><label class="form-label">Annual CTC (₹)</label><input class="form-control" type="number" name="annual_ctc" /></div>
+          <div class="form-group"><label class="form-label">Manager Employee ID</label><input class="form-control" name="manager_employee_id" placeholder="e.g. EMP001" /></div>
+          <div class="form-group full"><label class="form-label">Skills (comma separated)</label><input class="form-control" name="skills_text" placeholder="Python, React, Figma…" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEmployee()">Save Employee</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if (!requireAuth() || !canView('EMPLOYEES')) { window.location.href='/dashboard.html'; }
+
+  const user = getUser();
+  document.getElementById('org-name').textContent = user.org_name || '';
+  buildSidebar('/employees.html');
+  if (canCreate('EMPLOYEES')) document.getElementById('btn-add').style.display = 'flex';
+
+  let allEmployees = [];
+  let departments  = [];
+  let editingId    = null;
+
+  async function loadAll() {
+    try {
+      const [empRes, deptRes] = await Promise.all([api.get('/employees'), api.get('/departments')]);
+      allEmployees = empRes.data;
+      departments  = deptRes.data;
+      // Populate filters
+      const df = document.getElementById('dept-filter');
+      departments.forEach(d => { df.innerHTML += `<option value="${d.name}">${d.name}</option>`; });
+      const fd = document.getElementById('form-dept');
+      fd.innerHTML = '<option value="">— Select —</option>' + departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+      renderTable(allEmployees);
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  function filterEmployees() {
+    const q      = document.getElementById('search-input').value.toLowerCase();
+    const dept   = document.getElementById('dept-filter').value;
+    const status = document.getElementById('status-filter').value;
+    const filtered = allEmployees.filter(e =>
+      (!q    || e.full_name.toLowerCase().includes(q) || e.employee_id.toLowerCase().includes(q)) &&
+      (!dept   || e.department === dept) &&
+      (!status || e.employment_status === status)
+    );
+    renderTable(filtered);
+  }
+
+  function renderTable(list) {
+    document.getElementById('emp-count').textContent = `${list.length} employee${list.length !== 1 ? 's' : ''}`;
+    const container = document.getElementById('emp-table-container');
+    if (!list.length) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No employees found</div></div>';
+      return;
+    }
+    const edit   = canEdit('EMPLOYEES')   ? '' : 'style="display:none"';
+    const del    = canDelete('EMPLOYEES') ? '' : 'style="display:none"';
+    container.innerHTML = `
+      <table class="data-table">
+        <thead><tr>
+          <th>Employee</th><th>Department</th><th>Designation</th>
+          <th>Type</th><th>Status</th><th>Joined</th><th>CTC</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${list.map(e => `
+            <tr>
+              <td><div class="avatar-cell">
+                <div class="table-avatar">${initials(e.full_name)}</div>
+                <div><div class="emp-name"><a href="/employee-detail.html?id=${e.employee_id}" style="color:var(--primary)">${e.full_name}</a></div>
+                <div class="emp-id">${e.employee_id}</div></div>
+              </div></td>
+              <td>${e.department || '—'}</td>
+              <td>${e.designation || '—'}</td>
+              <td>${typeBadge(e.employment_type)}</td>
+              <td>${statusBadge(e.employment_status)}</td>
+              <td>${formatDate(e.joining_date)}</td>
+              <td>${formatCurrency(e.annual_ctc)}</td>
+              <td>
+                <div style="display:flex;gap:6px;">
+                  <a href="/employee-detail.html?id=${e.employee_id}" class="btn btn-icon btn-sm" title="View">👁</a>
+                  <button class="btn btn-icon btn-sm" ${edit} title="Edit" onclick="openEditModal('${e.employee_id}')">✏️</button>
+                  <button class="btn btn-icon btn-sm" ${del} title="Delete" onclick="deleteEmployee('${e.employee_id}', '${e.full_name}')">🗑</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function openAddModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'Add Employee';
+    document.getElementById('emp-form').reset();
+    document.getElementById('modal-error').style.display = 'none';
+    document.getElementById('emp-modal').classList.add('open');
+  }
+
+  async function openEditModal(empId) {
+    try {
+      const { data } = await api.get(`/employees/${empId}`);
+      editingId = empId;
+      document.getElementById('modal-title').textContent = 'Edit Employee';
+      document.getElementById('modal-error').style.display = 'none';
+      const f = document.getElementById('emp-form');
+      Object.entries(data).forEach(([k, v]) => { const el = f.elements[k]; if (el) el.value = v ?? ''; });
+      if (f.elements['department_id']) f.elements['department_id'].value = data.department_id || '';
+      f.elements['skills_text'].value = (data.skills || []).join(', ');
+      f.elements['manager_employee_id'].value = data.manager_employee_id || '';
+      document.getElementById('emp-modal').classList.add('open');
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  function closeModal() { document.getElementById('emp-modal').classList.remove('open'); }
+
+  async function submitEmployee() {
+    const f    = document.getElementById('emp-form');
+    const errEl = document.getElementById('modal-error');
+    const fd   = new FormData(f);
+    const data = Object.fromEntries(fd.entries());
+    // Resolve manager
+    if (data.manager_employee_id) {
+      const mgr = allEmployees.find(e => e.employee_id === data.manager_employee_id.toUpperCase());
+      data.manager_id = mgr ? mgr.id : null;
+    }
+    data.skills = data.skills_text ? data.skills_text.split(',').map(s => s.trim()).filter(Boolean) : [];
+    delete data.skills_text;
+    delete data.manager_employee_id;
+    ['department_id','annual_ctc','manager_id'].forEach(k => { if (data[k] === '' || data[k] === undefined) delete data[k]; else if (k !== 'skills') data[k] = isNaN(data[k]) ? data[k] : Number(data[k]); });
+
+    try {
+      if (editingId) {
+        await api.put(`/employees/${editingId}`, data);
+        showToast('Employee updated', 'success');
+      } else {
+        await api.post('/employees', data);
+        showToast('Employee added', 'success');
+      }
+      closeModal();
+      loadAll();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    }
+  }
+
+  async function deleteEmployee(empId, name) {
+    if (!confirm(`Delete employee ${name}? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/employees/${empId}`);
+      showToast('Employee deleted', 'success');
+      allEmployees = allEmployees.filter(e => e.employee_id !== empId);
+      filterEmployees();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  loadAll();
+</script>
+</body>
+</html>
