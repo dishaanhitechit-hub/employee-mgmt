@@ -1,0 +1,590 @@
+<title>HR Portal Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #f6f8fa;
+  --surface:   #ffffff;
+  --border:    #e2e8f0;
+  --text:      #1e293b;
+  --muted:     #64748b;
+  --accent:    #6366f1;
+  --accent-bg: #eef2ff;
+  --cyan:      #0891b2;
+  --green:     #059669;
+  --orange:    #d97706;
+  --red:       #dc2626;
+  --code-bg:   #f1f5f9;
+  --sidebar-w: 220px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --border:    #21262d;
+    --text:      #e6edf3;
+    --muted:     #7d8590;
+    --accent:    #818cf8;
+    --accent-bg: #1e1b4b;
+    --cyan:      #22d3ee;
+    --green:     #34d399;
+    --orange:    #fbbf24;
+    --red:       #f87171;
+    --code-bg:   #1c2128;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --border:    #21262d;
+  --text:      #e6edf3;
+  --muted:     #7d8590;
+  --accent:    #818cf8;
+  --accent-bg: #1e1b4b;
+  --cyan:      #22d3ee;
+  --green:     #34d399;
+  --orange:    #fbbf24;
+  --red:       #f87171;
+  --code-bg:   #1c2128;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.7;
+  display: flex;
+  min-height: 100%;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  padding: 24px 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-brand {
+  padding: 0 16px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.sidebar-brand .logo {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -.3px;
+}
+.sidebar-brand .version {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.nav-group { padding: 8px 16px 2px; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+.nav-link {
+  display: block;
+  padding: 5px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 0;
+  transition: color .15s, background .15s;
+  border-left: 2px solid transparent;
+}
+.nav-link:hover { color: var(--text); background: var(--accent-bg); }
+.nav-link.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-bg); }
+
+/* ── Content ── */
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 40px 48px 80px;
+  max-width: 860px;
+}
+
+h1 { font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; color: var(--text); margin-bottom: 6px; text-wrap: balance; }
+h2 { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: var(--text); margin: 48px 0 14px; padding-top: 48px; border-top: 1px solid var(--border); text-wrap: balance; }
+h2:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+h3 { font-size: 13px; font-weight: 600; color: var(--text); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: .5px; }
+p  { color: var(--muted); margin-bottom: 12px; }
+p strong { color: var(--text); font-weight: 600; }
+
+.lead { font-size: 15px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+
+/* Code */
+code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: var(--code-bg);
+  color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 12px 0 20px;
+}
+pre code { background: none; padding: 0; color: var(--text); font-size: 13px; }
+
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+.card h4 { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.card p  { margin: 0; font-size: 13px; }
+
+/* Stack grid */
+.stack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 24px; }
+.stack-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.stack-item .tech { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: var(--accent); }
+.stack-item .role { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* API table */
+.api-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+.api-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; }
+.api-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.api-table tr:last-child td { border-bottom: none; }
+.api-table tr:hover td { background: var(--code-bg); }
+
+/* Method badges */
+.m { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; min-width: 46px; text-align: center; }
+.GET    { background: #d1fae5; color: #065f46; }
+.POST   { background: #fef9c3; color: #713f12; }
+.PUT    { background: #dbeafe; color: #1e40af; }
+.DELETE { background: #fee2e2; color: #7f1d1d; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .GET    { background: #064e3b; color: #6ee7b7; }
+  :root:not([data-theme="light"]) .POST   { background: #451a03; color: #fde68a; }
+  :root:not([data-theme="light"]) .PUT    { background: #1e3a5f; color: #93c5fd; }
+  :root:not([data-theme="light"]) .DELETE { background: #450a0a; color: #fca5a5; }
+}
+:root[data-theme="dark"] .GET    { background: #064e3b; color: #6ee7b7; }
+:root[data-theme="dark"] .POST   { background: #451a03; color: #fde68a; }
+:root[data-theme="dark"] .PUT    { background: #1e3a5f; color: #93c5fd; }
+:root[data-theme="dark"] .DELETE { background: #450a0a; color: #fca5a5; }
+
+/* Permission matrix */
+.perm-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+.perm-table th, .perm-table td { padding: 7px 10px; border: 1px solid var(--border); text-align: center; }
+.perm-table th { background: var(--code-bg); font-weight: 600; font-size: 11px; }
+.perm-table td:first-child { text-align: left; font-weight: 500; }
+.yes { color: var(--green); font-weight: 700; }
+.no  { color: var(--border); }
+.partial { color: var(--orange); font-weight: 600; font-size: 10px; }
+
+/* Cred table */
+.cred-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+.cred-table th { text-align: left; padding: 8px 12px; background: var(--code-bg); border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+.cred-table td { padding: 8px 12px; border: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+/* Badges */
+.badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+.badge-indigo { background: var(--accent-bg); color: var(--accent); }
+
+/* File tree */
+.tree { font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.8; color: var(--muted); }
+.tree .dir  { color: var(--text); font-weight: 600; }
+.tree .file { color: var(--muted); }
+.tree .note { color: var(--accent); font-style: italic; }
+
+/* Section anchor offset */
+section { scroll-margin-top: 24px; }
+
+@media (max-width: 720px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; padding: 12px 16px; gap: 2px; }
+  .sidebar-brand { border-bottom: none; padding-bottom: 0; margin-bottom: 0; display: flex; align-items: center; gap: 12px; width: 100%; }
+  .nav-group { display: none; }
+  .nav-link { padding: 4px 10px; border-left: none; border-radius: 6px; font-size: 12px; }
+  .content { padding: 24px 16px 60px; }
+  h2 { margin-top: 32px; padding-top: 32px; }
+}
+</style>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo">hr-portal</div>
+    <div class="version">v1.0 · SQLite / PostgreSQL</div>
+  </div>
+
+  <span class="nav-group">Overview</span>
+  <a class="nav-link active" href="#overview">About</a>
+  <a class="nav-link" href="#stack">Tech Stack</a>
+  <a class="nav-link" href="#structure">Project Structure</a>
+
+  <span class="nav-group">Setup</span>
+  <a class="nav-link" href="#setup">Getting Started</a>
+  <a class="nav-link" href="#env">Environment</a>
+
+  <span class="nav-group">Backend</span>
+  <a class="nav-link" href="#auth-api">Auth</a>
+  <a class="nav-link" href="#employee-api">Employees</a>
+  <a class="nav-link" href="#dept-api">Departments</a>
+  <a class="nav-link" href="#attendance-api">Attendance</a>
+  <a class="nav-link" href="#perm-api">Permissions</a>
+  <a class="nav-link" href="#roles-api">Roles</a>
+  <a class="nav-link" href="#stats-api">Stats</a>
+
+  <span class="nav-group">System</span>
+  <a class="nav-link" href="#rbac">RBAC & Multi-tenant</a>
+  <a class="nav-link" href="#modules">HR Modules</a>
+  <a class="nav-link" href="#demo">Demo Logins</a>
+</nav>
+
+<div class="content">
+
+  <section id="overview">
+    <h1>HR Portal</h1>
+    <p class="lead">A multi-tenant SaaS HR management system built with Flask + SQLAlchemy on the backend and vanilla JS on the frontend. Each organisation is fully isolated via <code>org_id</code>. Access is governed by role-based permissions down to the module level, with optional individual and department overrides.</p>
+
+    <div class="stack-grid">
+      <div class="stack-item"><div class="tech">Flask 3.0</div><div class="role">API server + static serving</div></div>
+      <div class="stack-item"><div class="tech">SQLAlchemy 2</div><div class="role">ORM — SQLite (dev) / PostgreSQL (prod)</div></div>
+      <div class="stack-item"><div class="tech">flask-jwt-extended</div><div class="role">JWT auth + refresh tokens</div></div>
+      <div class="stack-item"><div class="tech">bcrypt</div><div class="role">Password hashing</div></div>
+      <div class="stack-item"><div class="tech">Vanilla JS</div><div class="role">Frontend — no framework</div></div>
+      <div class="stack-item"><div class="tech">python-dotenv</div><div class="role">Env config</div></div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <h2>Tech Stack</h2>
+    <table class="api-table">
+      <thead><tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>HTTP</td><td><code>Flask 3.0.3</code></td><td>REST API + SPA static serving</td></tr>
+        <tr><td>ORM</td><td><code>Flask-SQLAlchemy 3.1.1</code></td><td>All DB access — no raw SQL</td></tr>
+        <tr><td>Database</td><td>SQLite (dev) · PostgreSQL (prod)</td><td>Same models, different <code>DATABASE_URL</code></td></tr>
+        <tr><td>Auth</td><td><code>flask-jwt-extended 4.6.0</code></td><td>Access + refresh tokens; claims carry org/role/employee context</td></tr>
+        <tr><td>Security</td><td><code>bcrypt 4.1.2</code></td><td>Password hashing on <code>User</code> model</td></tr>
+        <tr><td>CORS</td><td><code>flask-cors 4.0.1</code></td><td>Allows <code>/api/*</code> from any origin</td></tr>
+        <tr><td>Config</td><td><code>python-dotenv 1.0.1</code></td><td>Reads <code>.env</code> file</td></tr>
+        <tr><td>Frontend</td><td>HTML · CSS · Vanilla JS</td><td>No build step, served directly by Flask</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="structure">
+    <h2>Project Structure</h2>
+    <pre><code class="tree"><span class="dir">employee-mgmt/</span>
+├── <span class="dir">backend/</span>
+│   ├── app.py                   <span class="note"># Flask factory + blueprint registration</span>
+│   ├── config.py                <span class="note"># Env vars → Python constants</span>
+│   ├── extensions.py            <span class="note"># db, UUIDType, DictMixin, to_uuid()</span>
+│   ├── seeding.py               <span class="note"># Drop/create tables + insert demo data</span>
+│   │
+│   ├── <span class="dir">models/</span>
+│   │   ├── organization.py      <span class="note"># Tenant root</span>
+│   │   ├── module.py            <span class="note"># 11 HR modules (global)</span>
+│   │   ├── role.py              <span class="note"># Per-org roles</span>
+│   │   ├── permission.py        <span class="note"># role × module → CRUD flags</span>
+│   │   ├── employee_permission.py  <span class="note"># individual override</span>
+│   │   ├── department_permission.py <span class="note"># dept override (highest priority)</span>
+│   │   ├── user.py              <span class="note"># Portal login accounts</span>
+│   │   ├── department.py        <span class="note"># Departments (circular FK with Employee)</span>
+│   │   ├── employee.py          <span class="note"># Self-referential manager FK</span>
+│   │   ├── skill.py             <span class="note"># M2M via employee_skills table</span>
+│   │   └── attendance.py        <span class="note"># One record per employee per date</span>
+│   │
+│   ├── <span class="dir">services/</span>               <span class="note"># Business logic — no HTTP here</span>
+│   │   ├── auth_service.py
+│   │   ├── employee_service.py
+│   │   ├── department_service.py
+│   │   ├── role_service.py
+│   │   ├── permission_service.py
+│   │   ├── employee_permission_service.py
+│   │   ├── organization_service.py
+│   │   ├── user_service.py
+│   │   └── attendance_service.py
+│   │
+│   ├── <span class="dir">routes/</span>                 <span class="note"># One Blueprint per resource</span>
+│   │   ├── auth_routes.py
+│   │   ├── employee_routes.py
+│   │   ├── department_routes.py
+│   │   ├── role_routes.py
+│   │   ├── permission_routes.py
+│   │   ├── employee_permission_routes.py
+│   │   ├── organization_routes.py
+│   │   ├── user_routes.py
+│   │   ├── attendance_routes.py
+│   │   └── stats_routes.py
+│   │
+│   ├── <span class="dir">middleware/</span>
+│   │   ├── auth_middleware.py      <span class="note"># @require_auth → populates g.user</span>
+│   │   └── permission_middleware.py <span class="note"># @require_permission(MODULE, action)</span>
+│   │
+│   ├── <span class="dir">utils/</span>
+│   │   └── response.py          <span class="note"># success(), created(), error(), …</span>
+│   │
+│   └── <span class="dir">migrations/</span>
+│       └── schema.sql           <span class="note"># Reference only — not required (db.create_all() handles it)</span>
+│
+└── <span class="dir">frontend/</span>
+    ├── index.html               <span class="note"># Login</span>
+    ├── dashboard.html
+    ├── employees.html
+    ├── employee-detail.html
+    ├── departments.html
+    ├── attendance.html
+    ├── users.html
+    ├── roles.html
+    ├── employee-permissions.html
+    ├── <span class="dir">js/</span>
+    │   ├── api.js               <span class="note"># Fetch wrapper with JWT + 401 auto-logout</span>
+    │   └── app.js               <span class="note"># Auth guard, sidebar, canView/canEdit helpers</span>
+    └── <span class="dir">css/</span>
+        └── style.css</code></pre>
+  </section>
+
+  <section id="setup">
+    <h2>Getting Started</h2>
+    <h3>Install dependencies</h3>
+    <pre><code>cd backend
+py -m pip install flask==3.0.3 flask-cors==4.0.1 flask-jwt-extended==4.6.0 \
+   flask-sqlalchemy==3.1.1 python-dotenv==1.0.1 bcrypt==4.1.2</code></pre>
+    <p><strong>Note:</strong> <code>psycopg2-binary</code> is only needed for PostgreSQL. Skip it for local SQLite testing.</p>
+
+    <h3>Seed the database</h3>
+    <pre><code>py seeding.py</code></pre>
+    <p>Creates all tables via <code>db.create_all()</code>, drops and recreates them on each run, then inserts 20 employees, 7 departments, 5 roles, 11 modules, and 4 demo users into <code>hr_portal.db</code> (SQLite).</p>
+
+    <h3>Run the server</h3>
+    <pre><code>py app.py</code></pre>
+    <p>Serves the API at <code>http://localhost:5000/api/…</code> and the frontend SPA at <code>http://localhost:5000</code>.</p>
+  </section>
+
+  <section id="env">
+    <h2>Environment Variables</h2>
+    <p>Copy <code>.env.example</code> to <code>.env</code> and fill in your values. Without a <code>.env</code>, the app defaults to SQLite.</p>
+    <pre><code>DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/hr_portal
+# Default (no .env): sqlite:///hr_portal.db
+
+JWT_SECRET=change-me-to-a-random-32-char-string
+JWT_ACCESS_EXPIRES_MINUTES=60
+JWT_REFRESH_EXPIRES_DAYS=7
+FLASK_DEBUG=false
+PORT=5000</code></pre>
+  </section>
+
+  <section id="auth-api">
+    <h2>Auth API &nbsp;<code>/api/auth</code></h2>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m POST">POST</span></td><td><code>/login</code></td><td>—</td><td>Returns <code>access_token</code>, <code>refresh_token</code>, <code>user</code>, <code>permissions{}</code></td></tr>
+        <tr><td><span class="m POST">POST</span></td><td><code>/refresh</code></td><td>Refresh token</td><td>Issues a new access token</td></tr>
+        <tr><td><span class="m GET">GET</span></td><td><code>/me</code></td><td>Bearer</td><td>Current user + role info</td></tr>
+      </tbody>
+    </table>
+    <p>The <code>permissions</code> map from login drives the frontend sidebar — only modules with <code>can_view: true</code> appear.</p>
+    <p>JWT claims carry <code>org_id</code>, <code>role_id</code>, <code>role_code</code>, <code>email</code>, <code>full_name</code>, <code>employee_id</code>, <code>department_id</code> — so middleware never needs extra DB lookups for basic identity.</p>
+  </section>
+
+  <section id="employee-api">
+    <h2>Employees API &nbsp;<code>/api/employees</code></h2>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Permission</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td>EMPLOYEES · view</td><td>List with filters: <code>search</code>, <code>department_id</code>, <code>status</code>, <code>type</code></td></tr>
+        <tr><td><span class="m GET">GET</span></td><td><code>/:id</code></td><td>EMPLOYEES · view</td><td>Single employee — includes skills, manager, department</td></tr>
+        <tr><td><span class="m POST">POST</span></td><td><code>/</code></td><td>EMPLOYEES · create</td><td>Create employee; auto-creates skills if new</td></tr>
+        <tr><td><span class="m PUT">PUT</span></td><td><code>/:id</code></td><td>EMPLOYEES · edit</td><td>Full update including skills M2M</td></tr>
+        <tr><td><span class="m DELETE">DELETE</span></td><td><code>/:id</code></td><td>EMPLOYEES · delete</td><td>Soft-removes employee</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="dept-api">
+    <h2>Departments API &nbsp;<code>/api/departments</code></h2>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Permission</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td>DEPARTMENTS · view</td><td>All departments with head name + employee count</td></tr>
+        <tr><td><span class="m GET">GET</span></td><td><code>/:id</code></td><td>DEPARTMENTS · view</td><td>Single department</td></tr>
+        <tr><td><span class="m POST">POST</span></td><td><code>/</code></td><td>DEPARTMENTS · create</td><td>Create department</td></tr>
+        <tr><td><span class="m PUT">PUT</span></td><td><code>/:id</code></td><td>DEPARTMENTS · edit</td><td>Update including setting <code>head_id</code></td></tr>
+        <tr><td><span class="m DELETE">DELETE</span></td><td><code>/:id</code></td><td>DEPARTMENTS · delete</td><td>Delete department</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="attendance-api">
+    <h2>Attendance API &nbsp;<code>/api/attendance</code></h2>
+    <p>One record per employee per date (upsert on <code>POST</code>). Statuses: <code>Present</code> · <code>Absent</code> · <code>Late</code> · <code>Half Day</code> · <code>On Leave</code> · <code>Holiday</code></p>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Permission</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td>ATTENDANCE · view</td><td>List with filters: <code>date_from</code>, <code>date_to</code>, <code>status</code>, <code>employee_id</code>, <code>department_id</code></td></tr>
+        <tr><td><span class="m GET">GET</span></td><td><code>/summary</code></td><td>ATTENDANCE · view</td><td>Count by status for the same filters</td></tr>
+        <tr><td><span class="m GET">GET</span></td><td><code>/:id</code></td><td>ATTENDANCE · view</td><td>Single record</td></tr>
+        <tr><td><span class="m POST">POST</span></td><td><code>/</code></td><td>ATTENDANCE · create</td><td>Mark or update one employee for one date</td></tr>
+        <tr><td><span class="m POST">POST</span></td><td><code>/bulk</code></td><td>ATTENDANCE · create</td><td>Mark all employees for one date in one call</td></tr>
+        <tr><td><span class="m PUT">PUT</span></td><td><code>/:id</code></td><td>ATTENDANCE · edit</td><td>Edit check-in/out, status, notes</td></tr>
+        <tr><td><span class="m DELETE">DELETE</span></td><td><code>/:id</code></td><td>ATTENDANCE · delete</td><td>Remove a record</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="perm-api">
+    <h2>Permissions API</h2>
+
+    <h3>Role permissions &nbsp;<code>/api/roles/:id/permissions</code></h3>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m PUT">PUT</span></td><td><code>/roles/:id/permissions</code></td><td>Bulk set module permissions for a role</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Individual employee permissions &nbsp;<code>/api/employee-permissions</code></h3>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m GET">GET</span></td><td><code>/:employee_id</code></td><td>All modules with effective value + source (department / employee / role / none)</td></tr>
+        <tr><td><span class="m PUT">PUT</span></td><td><code>/:employee_id</code></td><td>Bulk upsert individual overrides; all-false rows are deleted (reverts to role)</td></tr>
+        <tr><td><span class="m DELETE">DELETE</span></td><td><code>/:employee_id</code></td><td>Clear all individual overrides for an employee</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Permission resolution order</h3>
+    <div class="card">
+      <p style="margin:0;font-size:13px;">
+        <strong>Department override</strong> (highest) → <strong>Employee override</strong> → <strong>Role default</strong> (baseline)<br>
+        <span style="color:var(--muted);">Department permissions win if set. If not, individual employee override wins. If neither, falls back to the role's permission.</span>
+      </p>
+    </div>
+
+    <h3>Module & misc &nbsp;<code>/api/permissions</code></h3>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m GET">GET</span></td><td><code>/modules</code></td><td>All 11 HR modules (for permission matrix UI)</td></tr>
+        <tr><td><span class="m GET">GET</span></td><td><code>/my-permissions</code></td><td>Current user's effective permission map</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="roles-api">
+    <h2>Roles API &nbsp;<code>/api/roles</code></h2>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td>List all roles with permission matrix + user count</td></tr>
+        <tr><td><span class="m GET">GET</span></td><td><code>/:id</code></td><td>Single role</td></tr>
+        <tr><td><span class="m POST">POST</span></td><td><code>/</code></td><td>Create role</td></tr>
+        <tr><td><span class="m PUT">PUT</span></td><td><code>/:id</code></td><td>Update role</td></tr>
+        <tr><td><span class="m DELETE">DELETE</span></td><td><code>/:id</code></td><td>Delete role (blocks if users assigned)</td></tr>
+        <tr><td><span class="m PUT">PUT</span></td><td><code>/:id/permissions</code></td><td>Bulk set all module permissions for this role</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="stats-api">
+    <h2>Stats API &nbsp;<code>/api/stats</code></h2>
+    <table class="api-table">
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td>Headcount, active/leave/inactive counts, employment type breakdown, per-department headcount</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="rbac">
+    <h2>RBAC & Multi-tenancy</h2>
+
+    <h3>Multi-tenancy</h3>
+    <p>Every tenant-scoped table has an <code>org_id UUID</code> column with a FK to <code>organizations</code>. All service queries hard-filter by <code>org_id</code> extracted from the JWT — no cross-tenant data leakage is possible at the ORM layer.</p>
+
+    <h3>Role-based access control</h3>
+    <p>The <code>@require_permission(MODULE_CODE, action)</code> decorator on every route checks the resolved permission before the handler runs. Actions are <code>view</code> · <code>create</code> · <code>edit</code> · <code>delete</code>.</p>
+
+    <pre><code>@bp.get("/")
+@require_auth
+@require_permission("EMPLOYEES", "view")
+def list_employees(): ...</code></pre>
+
+    <h3>Permission matrix (seeded defaults)</h3>
+    <div style="overflow-x:auto;">
+    <table class="perm-table">
+      <thead>
+        <tr><th>Module</th><th>Super Admin</th><th>HR Manager</th><th>HR Executive</th><th>Manager</th><th>Employee</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dashboard</td><td class="yes">VCUD</td><td class="partial">V</td><td class="partial">V</td><td class="partial">V</td><td class="partial">V</td></tr>
+        <tr><td>Employees</td><td class="yes">VCUD</td><td class="partial">VCU</td><td class="partial">VCU</td><td class="partial">V</td><td class="partial">V</td></tr>
+        <tr><td>Departments</td><td class="yes">VCUD</td><td class="partial">VCU</td><td class="partial">V</td><td class="partial">V</td><td class="no">—</td></tr>
+        <tr><td>Attendance</td><td class="yes">VCUD</td><td class="partial">VCU</td><td class="partial">VC</td><td class="partial">VC</td><td class="partial">VC</td></tr>
+        <tr><td>Leaves</td><td class="yes">VCUD</td><td class="yes">VCUD</td><td class="partial">VCU</td><td class="partial">VU</td><td class="partial">VC</td></tr>
+        <tr><td>Payroll</td><td class="yes">VCUD</td><td class="partial">VCU</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>User Mgmt</td><td class="yes">VCUD</td><td class="partial">VCU</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Role Mgmt</td><td class="yes">VCUD</td><td class="partial">V</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="font-size:12px;">V = view · C = create · U = edit · D = delete. These are defaults; edit via Roles &amp; Permissions page.</p>
+  </section>
+
+  <section id="modules">
+    <h2>HR Modules</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+      <div class="card"><h4>DASHBOARD</h4><p>Org-wide stats and charts</p></div>
+      <div class="card"><h4>EMPLOYEES</h4><p>Directory, profiles, CRUD</p></div>
+      <div class="card"><h4>DEPARTMENTS</h4><p>Structure and headcount</p></div>
+      <div class="card"><h4>ATTENDANCE</h4><p>Daily records, bulk mark, summary stats</p></div>
+      <div class="card"><h4>LEAVES</h4><p>Leave requests and approvals <span class="badge badge-indigo">soon</span></p></div>
+      <div class="card"><h4>PAYROLL</h4><p>Salary management <span class="badge badge-indigo">soon</span></p></div>
+      <div class="card"><h4>PERFORMANCE</h4><p>Reviews and KPIs <span class="badge badge-indigo">soon</span></p></div>
+      <div class="card"><h4>RECRUITMENT</h4><p>Job postings, pipeline <span class="badge badge-indigo">soon</span></p></div>
+      <div class="card"><h4>REPORTS</h4><p>Analytics and exports <span class="badge badge-indigo">soon</span></p></div>
+      <div class="card"><h4>USER_MANAGEMENT</h4><p>Portal user accounts</p></div>
+      <div class="card"><h4>ROLE_MANAGEMENT</h4><p>Roles + permission matrix + employee overrides</p></div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <h2>Demo Logins</h2>
+    <p>All demo accounts use the same password. Run <code>py seeding.py</code> to reset.</p>
+    <table class="cred-table">
+      <thead><tr><th>Email</th><th>Password</th><th>Role</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>admin@acmecorp.io</td><td>Admin@123</td><td>super_admin</td><td>Everything</td></tr>
+        <tr><td>hrmanager@acmecorp.io</td><td>Admin@123</td><td>hr_manager</td><td>HR ops, no delete on employees</td></tr>
+        <tr><td>manager@acmecorp.io</td><td>Admin@123</td><td>manager</td><td>View employees, mark attendance, approve leaves</td></tr>
+        <tr><td>employee@acmecorp.io</td><td>Admin@123</td><td>employee</td><td>Self-service: dashboard, view employees, own attendance/leaves</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+
+<script>
+  const links = document.querySelectorAll('.nav-link');
+  const sections = document.querySelectorAll('section[id]');
+
+  function onScroll() {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 60) current = s.id;
+    });
+    links.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
